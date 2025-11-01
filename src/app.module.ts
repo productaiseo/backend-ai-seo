@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit, Logger } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
@@ -23,4 +23,11 @@ import { ScraperModule } from './test/scraper/scraper.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements OnModuleInit {
+  private readonly logger = new Logger(AppModule.name);
+
+  onModuleInit() {
+    this.logger.log('AppModule initialized');
+    this.logger.log('ScraperModule should be loaded');
+  }
+}

@@ -3,18 +3,27 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Controller,
+  Get,
   Post,
   Body,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { ScraperService } from './scraper.service';
-import { ScrapeUrlDto } from '../dto/scrape-url.dto';
+import { ScrapeUrlDto } from './dto/scrape-url.dto';
 import logger from '../../utils/logger';
 
 @Controller('test/puppeteer')
 export class ScraperController {
+  private readonly logger = new Logger(ScraperController.name);
+
   constructor(private readonly scraperService: ScraperService) {}
+
+  @Get('health')
+  getHealth() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
 
   @Post()
   async scrapePage(@Body() scrapeUrlDto: ScrapeUrlDto) {
@@ -28,11 +37,15 @@ export class ScraperController {
         );
       }
 
+      this.logger.log(`[Test] Starting Puppeteer scrape for ${url}`);
       logger.info(`[Test] Starting Puppeteer scrape for ${url}`, '');
 
       const scrapedData = await this.scraperService.puppeteerScraper(url);
       const { content: scrapedContent, html: scrapedHtml } = scrapedData;
 
+      this.logger.log(
+        `[Test] Scrape completed. Content length: ${scrapedContent.length}`,
+      );
       logger.info(
         `[Test] Scrape completed. Content length: ${scrapedContent.length}`,
         '',
@@ -43,6 +56,7 @@ export class ScraperController {
         html: scrapedHtml,
       };
     } catch (error: any) {
+      this.logger.error('[Test] Error in POST handler:', error);
       console.error('[Test] Error in POST handler:', error);
       logger.error?.('TestAPI failed', 'test-puppeteer', { error });
 

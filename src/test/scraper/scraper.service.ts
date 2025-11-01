@@ -27,8 +27,6 @@ export class ScraperService {
       {
         isProduction,
         NODE_ENV: process.env.NODE_ENV,
-        VERCEL: process.env.VERCEL,
-        VERCEL_ENV: process.env.VERCEL_ENV,
         platform: process.platform,
         arch: process.arch,
         timestamp: new Date().toISOString(),

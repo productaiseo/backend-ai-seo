@@ -1,8 +1,9 @@
-// import { IsString, IsNotEmpty } from 'class-validator';
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+import { IsString, IsNotEmpty } from 'class-validator';
 
 export class ScrapeUrlDto {
-  //   @IsString()
-  //   @IsNotEmpty()
+  @IsString()
+  @IsNotEmpty()
   url: string;
 }
 
