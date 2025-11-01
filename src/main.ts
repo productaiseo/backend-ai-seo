@@ -13,7 +13,6 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
       transform: true,
     }),
   );
@@ -22,7 +21,8 @@ async function bootstrap() {
   app.enableCors({
     origin: ['http://localhost:3000', 'https://mvp.aiseoptimizer.com'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    // allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
+    credentials: true,
     optionsSuccessStatus: 200, // Some legacy browsers choke on 204
   });
 
