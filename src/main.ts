@@ -26,7 +26,7 @@ async function bootstrap() {
     optionsSuccessStatus: 200, // Some legacy browsers choke on 204
   });
 
-  const port = process.env.PORT ?? 3000;
+  const port = process.env.PORT ?? 8080;
   await app.listen(port);
 
   console.log(`Application is running on port ${port}`);
