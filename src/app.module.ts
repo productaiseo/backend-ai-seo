@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { ReportsModule } from './reports/reports.module';
+import { ScraperModule } from './test/scraper/scraper.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ReportsModule } from './reports/reports.module';
       // useUnifiedTopology: true,
     }),
     ReportsModule,
+    ScraperModule,
   ],
   controllers: [AppController],
   providers: [AppService],
