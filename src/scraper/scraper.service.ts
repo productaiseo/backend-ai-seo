@@ -6,9 +6,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 import { Injectable } from '@nestjs/common';
-import { AppError, ErrorType } from '../../utils/errors';
-import logger from '../../utils/logger';
-import { ScrapeResult } from '../../types/analysis';
+import { AppError, ErrorType } from '../utils/errors';
+import logger from '../utils/logger';
+import { ScrapeResult } from '../types/analysis';
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;

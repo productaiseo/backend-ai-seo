@@ -5,7 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { ReportsModule } from './reports/reports.module';
-import { ScraperModule } from './test/scraper/scraper.module';
+import { ScraperModule } from './scraper/scraper.module';
 
 @Module({
   imports: [

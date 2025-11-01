@@ -12,9 +12,9 @@ import {
 } from '@nestjs/common';
 import { ScraperService } from './scraper.service';
 import { ScrapeUrlDto } from './dto/scrape-url.dto';
-import logger from '../../utils/logger';
+import logger from '../utils/logger';
 
-@Controller('test/puppeteer')
+@Controller('scraper')
 export class ScraperController {
   private readonly logger = new Logger(ScraperController.name);
 
