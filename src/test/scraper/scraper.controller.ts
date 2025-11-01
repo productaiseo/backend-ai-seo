@@ -26,21 +26,21 @@ export class ScraperController {
   }
 
   @Post()
-  async scrapePage(@Body() scrapeUrlDto: ScrapeUrlDto) {
+  async scrapePage(@Body() body: ScrapeUrlDto) {
     try {
-      const { url } = scrapeUrlDto;
+      // const { url } = body;
 
-      if (!url || typeof url !== 'string') {
+      if (!body.url || typeof body.url !== 'string') {
         throw new HttpException(
           'Invalid URL parameter',
           HttpStatus.BAD_REQUEST,
         );
       }
 
-      this.logger.log(`[Test] Starting Puppeteer scrape for ${url}`);
-      logger.info(`[Test] Starting Puppeteer scrape for ${url}`, '');
+      this.logger.log(`[Test] Starting Puppeteer scrape for ${body.url}`);
+      logger.info(`[Test] Starting Puppeteer scrape for ${body.url}`, '');
 
-      const scrapedData = await this.scraperService.puppeteerScraper(url);
+      const scrapedData = await this.scraperService.puppeteerScraper(body.url);
       const { content: scrapedContent, html: scrapedHtml } = scrapedData;
 
       this.logger.log(
