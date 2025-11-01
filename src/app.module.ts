@@ -1,10 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -16,6 +16,7 @@ import { MongooseModule } from '@nestjs/mongoose';
       // useNewUrlParser: true,
       // useUnifiedTopology: true,
     }),
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
