@@ -6,6 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { ReportsModule } from './reports/reports.module';
 import { ScraperModule } from './scraper/scraper.module';
+import { JobStatusModule } from './jobstatus/job-status.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ScraperModule } from './scraper/scraper.module';
     }),
     ReportsModule,
     ScraperModule,
+    JobStatusModule,
   ],
   controllers: [AppController],
   providers: [AppService],
@@ -29,5 +31,6 @@ export class AppModule implements OnModuleInit {
   onModuleInit() {
     this.logger.log('AppModule initialized');
     this.logger.log('ScraperModule should be loaded');
+    this.logger.log('JobStatusModule should be loaded');
   }
 }
