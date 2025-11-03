@@ -1,10 +1,31 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Debug: Log environment variables (remove in production!)
+  console.log('=== Environment Variables Check ===');
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+  console.log('MONGODB_URI:', process.env.MONGODB_URI ? '✓ Set' : '✗ Missing');
+  console.log(
+    'OPENAI_API_KEY:',
+    process.env.OPENAI_API_KEY ? '✓ Set' : '✗ Missing',
+  );
+  console.log(
+    'GEMINI_API_KEY:',
+    process.env.GEMINI_API_KEY ? '✓ Set' : '✗ Missing',
+  );
+  console.log(
+    'GOOGLE_GEMINI_API_KEY:',
+    process.env.GOOGLE_GEMINI_API_KEY ? '✓ Set' : '✗ Missing',
+  );
+  console.log(
+    'GOOGLE_PAGESPEED_API_KEY:',
+    process.env.GOOGLE_PAGESPEED_API_KEY ? '✓ Set' : '✗ Missing',
+  );
+  console.log('===================================');
 
   // Set global prefix
   app.setGlobalPrefix('api');

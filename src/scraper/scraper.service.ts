@@ -1,225 +1,166 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable no-async-promise-executor */
+/* eslint-disable @typescript-eslint/prefer-promise-reject-errors */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
+/* eslint-disable @typescript-eslint/no-misused-promises */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-
-import { Injectable } from '@nestjs/common';
-import { AppError, ErrorType } from '../utils/errors';
-import logger from '../utils/logger';
-import { ScrapeResult } from '../types/analysis';
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
+import { Injectable, Logger } from '@nestjs/common';
+import type { Browser } from 'playwright-core';
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
+const OVERALL_TIMEOUT_MS = 45000; // 45 seconds max per attempt
 
-let puppeteer: any;
-let chromium: any;
+interface PlaywrightScrapeResult {
+  html: string;
+  content: string;
+  robotsTxt?: string;
+  llmsTxt?: string;
+  performanceMetrics?: any;
+}
 
 @Injectable()
 export class ScraperService {
-  private async getBrowser() {
-    const isProduction = process.env.NODE_ENV === 'production';
+  private readonly logger = new Logger(ScraperService.name);
+  private browser: Browser | null = null;
+  private browserPromise: Promise<Browser> | null = null;
+  private chromiumPathPromise: Promise<string> | null = null;
 
-    logger.info(
-      `[puppeteer-scraper] Environment check`,
-      'puppeteer environment',
-      {
-        isProduction,
-        NODE_ENV: process.env.NODE_ENV,
-        platform: process.platform,
-        arch: process.arch,
-        timestamp: new Date().toISOString(),
-      },
-    );
+  private async getBrowser(): Promise<Browser> {
+    const isProduction =
+      process.env.NODE_ENV === 'production' || process.env.VERCEL;
 
-    // Production environment (Vercel)
-    if (isProduction) {
-      try {
-        logger.info(
-          `[puppeteer-scraper] Setting up production browser...`,
-          'puppeteer-scraper',
-        );
+    // Reuse healthy browser
+    if (this.browser && this.browser.isConnected()) {
+      return this.browser;
+    }
 
-        const [chromiumModule, puppeteerModule] = await Promise.all([
-          import('@sparticuz/chromium'),
-          import('puppeteer-core'),
-        ]);
+    // If another invocation is already launching, await it
+    if (this.browserPromise) {
+      return this.browserPromise;
+    }
 
-        // Access the default exports correctly
-        chromium = chromiumModule.default || chromiumModule;
-        puppeteer = puppeteerModule.default || puppeteerModule;
+    // Launch once (guard with promise)
+    this.browserPromise = (async () => {
+      let browser: Browser;
 
-        logger.info(
-          `[puppeteer-scraper] Packages imported successfully`,
-          'puppeteer-scraper',
-        );
+      if (isProduction) {
+        const [{ chromium: chromiumLauncher }, chromiumModule] =
+          await Promise.all([
+            import('playwright-core').then((m) => ({ chromium: m.chromium })),
+            import('@sparticuz/chromium'),
+          ]);
 
-        // Get executable path from chromium
-        let executPath: string | undefined;
-        try {
-          executPath = await chromium.executablePath();
-        } catch (e) {
-          logger.warn(
-            '[puppeteer-scraper] executablePath failed; using remote pack fallback once',
-          );
-          const chromiumMin = (await import('@sparticuz/chromium-min')).default;
-          executPath = await chromiumMin.executablePath(
-            'https://github.com/Sparticuz/chromium/releases/download/v140.0.0/chromium-v140.0.0-pack.x64.tar',
-          );
-        }
-        logger.info(
-          `[puppeteer-scraper] Executable path: ${executPath}`,
-          'puppeteer-scraper',
-        );
+        const chromiumPkg = chromiumModule.default || chromiumModule;
 
-        // Launch browser with proper configuration
-        logger.info(
-          `[puppeteer-scraper] Launching browser...`,
-          'puppeteer-scraper',
-        );
-        const browser = await puppeteer.launch({
+        // Ensure only ONE extraction to /tmp runs at a time across invocations
+        const executablePath =
+          this.chromiumPathPromise || chromiumPkg.executablePath();
+        this.chromiumPathPromise = executablePath as Promise<string>;
+        const path = await executablePath;
+
+        browser = await chromiumLauncher.launch({
           headless: true,
-          executablePath: executPath,
-          defaultViewport: chromium.defaultViewport,
-          args: [
-            ...chromium.args,
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process',
-            '--disable-gpu',
-            '--disable-web-security',
-            '--disable-features=VizDisplayCompositor',
-            '--memory-pressure-off',
-            '--max_old_space_size=4096',
-          ],
+          executablePath: path,
+          args: chromiumPkg.args,
+          chromiumSandbox: false,
         });
-
-        logger.info(
-          `[puppeteer-scraper] Browser launched successfully`,
-          'puppeteer-scraper',
-        );
-        return browser;
-      } catch (prodError: any) {
-        logger.error(
-          `[puppeteer-scraper] Production setup failed: ${prodError.message}`,
-          'puppeteer-scraper',
-        );
-        logger.error(
-          `[puppeteer-scraper] Error details:`,
-          'puppeteer-scraper',
-          {
-            message: prodError.message,
-            stack: prodError.stack,
-            name: prodError.name,
-          },
-        );
-        throw new Error(
-          `Production browser setup failed: ${prodError.message}`,
-        );
+      } else {
+        const { chromium } = await import('playwright');
+        browser = await chromium.launch({ headless: true });
       }
-    } else {
-      // Development environment
-      try {
-        logger.info(
-          `[puppeteer-scraper] Setting up development browser...`,
-          'puppeteer-scraper',
-        );
 
-        const puppeteerModule = await import('puppeteer');
-        puppeteer = puppeteerModule.default || puppeteerModule;
+      browser.on('disconnected', () => {
+        this.browser = null;
+      });
+      this.browser = browser;
+      return browser;
+    })();
 
-        const browser = await puppeteer.launch({
-          headless: 'new',
-          ignoreHTTPSErrors: true,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu',
-          ],
-        });
-
-        logger.info(
-          `[puppeteer-scraper] Browser launched successfully`,
-          'puppeteer-scraper',
-        );
-        return browser;
-      } catch (devError: any) {
-        logger.error(
-          `[puppeteer-scraper] Development setup failed: ${devError.message}`,
-          'puppeteer-scraper',
-        );
-        throw new Error(
-          `Development browser setup failed: ${devError.message}`,
-        );
-      }
+    try {
+      return await this.browserPromise;
+    } finally {
+      // Clear the promise so a future relaunch can happen if this one dies later
+      this.browserPromise = null;
     }
   }
 
-  async puppeteerScraper(url: string): Promise<ScrapeResult> {
-    const normalizedUrl =
-      url.startsWith('http://') || url.startsWith('https://')
-        ? url
-        : `https://${url}`;
+  /**
+   * Scrape with overall timeout protection
+   */
+  private async scrapeWithTimeout(
+    url: string,
+    timeoutMs: number,
+  ): Promise<PlaywrightScrapeResult> {
+    return new Promise(async (resolve, reject) => {
+      let browser: Browser | null = null;
+      let context: import('playwright-core').BrowserContext | null = null;
+      let page: import('playwright-core').Page | null = null;
+      let timeoutHandle: NodeJS.Timeout | null = null;
+      let isTimedOut = false;
 
-    let lastError: any;
+      // Overall timeout
+      timeoutHandle = setTimeout(() => {
+        isTimedOut = true;
+        const error = new Error(`Scraping timed out after ${timeoutMs}ms`);
+        this.logger.error(`[playwright-scraper] Timeout reached for ${url}`);
 
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      let browser: any | null = null;
+        // Force cleanup
+        Promise.all([
+          page?.close().catch(() => {}),
+          context?.close().catch(() => {}),
+        ]).finally(() => {
+          reject(error);
+        });
+      }, timeoutMs);
 
       try {
-        logger.info(
-          `[puppeteer-scraper] Attempt ${attempt}/${MAX_RETRIES} - ${normalizedUrl}`,
-        );
-
         browser = await this.getBrowser();
-        logger.info(
-          `[puppeteer-scraper] Browser launched successfully`,
-          'puppeteer-scraper',
-        );
 
-        const page = await browser.newPage();
-
-        // Set viewport and user agent
-        await page.setViewport({ width: 1920, height: 1080 });
-        await page.setUserAgent(
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        );
-
-        // Set extra HTTP headers for locale
-        await page.setExtraHTTPHeaders({
-          'Accept-Language': 'en-US,en;q=0.9',
+        context = await browser.newContext({
+          viewport: { width: 1920, height: 1080 },
+          userAgent:
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          extraHTTPHeaders: {
+            'Accept-Language': 'en-US,en;q=0.9',
+          },
+          ignoreHTTPSErrors: true,
         });
 
-        const response = await page.goto(normalizedUrl, {
+        page = await context.newPage();
+
+        // Shorter individual timeouts since we have overall timeout
+        const response = await page.goto(url, {
           waitUntil: 'domcontentloaded',
-          timeout: 60_000,
+          timeout: 30_000, // Reduced from 60s
         });
+
+        if (isTimedOut) return; // Already cleaned up
+
+        // Shorter network idle
         await page
-          .waitForNetworkIdle({ idleTime: 1000, timeout: 15000 })
-          .catch(() => {});
+          .waitForLoadState('networkidle', { timeout: 10_000 })
+          .catch(() => {
+            this.logger.warn(
+              `[playwright-scraper] Network idle timeout (non-fatal)`,
+            );
+          });
+
+        if (isTimedOut) return;
 
         if (!response || !response.ok()) {
-          throw new AppError(
-            ErrorType.SCRAPING_ERROR,
-            `HTTP error! Status: ${response?.status()} for ${normalizedUrl}`,
-            {
-              userFriendlyMessage: `Could not reach the website (Error Code: ${response?.status()}). Please check the URL.`,
-            },
+          throw new Error(
+            `HTTP error! Status: ${response?.status()} for ${url}. Could not reach the website (Error Code: ${response?.status()}). Please check the URL.`,
           );
         }
 
         const html = await page.content();
         const content = await page.evaluate(
-          () => document.body.innerText || '',
+          () => document.body?.innerText || '',
         );
 
         if (!content || content.trim().length < 100) {
@@ -228,103 +169,153 @@ export class ScraperService {
           );
         }
 
-        // Fetch robots.txt and llms.txt
-        const [robotsTxt, llmsTxt] = await Promise.all([
-          (async () => {
+        // robots.txt + llms.txt (with shorter timeout)
+        const [robotsTxt, llmsTxt] = await Promise.allSettled([
+          page.evaluate(async (baseUrl: string) => {
             try {
-              const result = await page.evaluate(async (baseUrl: string) => {
-                try {
-                  const response = await fetch(
-                    new URL('/robots.txt', baseUrl).toString(),
-                  );
-                  return response.ok ? await response.text() : undefined;
-                } catch {
-                  return undefined;
-                }
-              }, normalizedUrl);
-              return result;
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 5000);
+              const res = await fetch(
+                new URL('/robots.txt', baseUrl).toString(),
+                {
+                  signal: controller.signal,
+                },
+              );
+              clearTimeout(timeoutId);
+              return res.ok ? await res.text() : undefined;
             } catch {
-              logger.warn(`[puppeteer-scraper] robots.txt not reachable`);
               return undefined;
             }
-          })(),
-          (async () => {
+          }, url),
+          page.evaluate(async (baseUrl: string) => {
             try {
-              const result = await page.evaluate(async (baseUrl: string) => {
-                try {
-                  const response = await fetch(
-                    new URL('/llms.txt', baseUrl).toString(),
-                  );
-                  return response.ok ? await response.text() : undefined;
-                } catch {
-                  return undefined;
-                }
-              }, normalizedUrl);
-              return result;
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 5000);
+              const res = await fetch(
+                new URL('/llms.txt', baseUrl).toString(),
+                {
+                  signal: controller.signal,
+                },
+              );
+              clearTimeout(timeoutId);
+              return res.ok ? await res.text() : undefined;
             } catch {
-              logger.warn(`[puppeteer-scraper] llms.txt not reachable`);
               return undefined;
             }
-          })(),
+          }, url),
+        ]).then((results) => [
+          results[0].status === 'fulfilled' ? results[0].value : undefined,
+          results[1].status === 'fulfilled' ? results[1].value : undefined,
         ]);
 
-        const performanceMetrics = await page.evaluate(() =>
-          JSON.parse(JSON.stringify(window.performance)),
+        if (isTimedOut) return;
+
+        // Performance metrics
+        let performanceMetrics;
+        try {
+          performanceMetrics = await page.evaluate(() =>
+            JSON.parse(JSON.stringify(window.performance)),
+          );
+        } catch (e) {
+          this.logger.warn(
+            `[playwright-scraper] Could not get performance metrics`,
+          );
+          performanceMetrics = {};
+        }
+
+        this.logger.log(`[playwright-scraper] Success - ${url}`);
+
+        // Clear timeout and resolve
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+          timeoutHandle = null;
+        }
+
+        resolve({ html, content, robotsTxt, llmsTxt, performanceMetrics });
+      } catch (error: any) {
+        if (isTimedOut) return; // Already handled by timeout
+
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+          timeoutHandle = null;
+        }
+
+        reject(error);
+      } finally {
+        // Cleanup
+        try {
+          await page?.close().catch(() => {});
+          await context?.close().catch(() => {});
+        } catch (closeErr) {
+          this.logger.error(
+            `[playwright-scraper] Error closing page/context`,
+            closeErr,
+          );
+        }
+      }
+    });
+  }
+
+  async playwrightScraper(url: string): Promise<PlaywrightScrapeResult> {
+    const normalizedUrl =
+      url.startsWith('http://') || url.startsWith('https://')
+        ? url
+        : `https://${url}`;
+
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        this.logger.log(
+          `[playwright-scraper] Attempt ${attempt}/${MAX_RETRIES} - ${normalizedUrl}`,
         );
 
-        logger.info(`[puppeteer-scraper] Success - ${normalizedUrl}`);
-
-        return { html, content, robotsTxt, llmsTxt, performanceMetrics };
+        const result = await this.scrapeWithTimeout(
+          normalizedUrl,
+          OVERALL_TIMEOUT_MS,
+        );
+        return result;
       } catch (error: any) {
         lastError = error;
-        logger.warn(
-          `[puppeteer-scraper] Attempt ${attempt}/${MAX_RETRIES} failed - ${normalizedUrl}`,
-          'puppeteer-scraper',
-          { error: error?.message },
+        this.logger.warn(
+          `[playwright-scraper] Attempt ${attempt}/${MAX_RETRIES} failed - ${normalizedUrl}`,
+          error?.message,
         );
 
         if (error?.message?.includes('net::ERR_NAME_NOT_RESOLVED')) {
-          throw new AppError(
-            ErrorType.DNS_RESOLUTION_ERROR,
-            `Alan adı çözümlenemedi: ${normalizedUrl}`,
-            {
-              contextData: { url: normalizedUrl, error: error.message },
-              userFriendlyMessage:
-                'The specified domain name could not be found. Please check the URL and try again.',
-            },
+          throw new Error(
+            `Domain could not be resolved: ${normalizedUrl}. The specified domain name could not be found. Please check the URL and try again.`,
           );
         }
 
-        if (attempt < MAX_RETRIES) {
-          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
-        }
-      } finally {
-        try {
-          if (browser) {
-            await browser.close();
-            logger.info(
-              `[puppeteer-scraper] Browser closed successfully`,
-              'puppeteer-scraper',
-            );
-          }
-        } catch (closeError) {
-          logger.error(
-            `[puppeteer-scraper] Error closing browser`,
-            'puppeteer-scraper',
-            { error: closeError },
+        // Don't retry on timeout - it's likely a bad site
+        if (error?.message?.includes('timed out')) {
+          this.logger.error(
+            `[playwright-scraper] Timeout after ${OVERALL_TIMEOUT_MS}ms, not retrying`,
           );
+          break;
+        }
+
+        if (attempt < MAX_RETRIES) {
+          this.logger.log(
+            `[playwright-scraper] Waiting ${RETRY_DELAY_MS}ms before retry`,
+          );
+          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
         }
       }
     }
 
-    throw new AppError(
-      ErrorType.SCRAPING_ERROR,
-      `Puppeteer ile sayfa taranırken ${MAX_RETRIES} denemenin ardından bir hata oluştu: ${normalizedUrl}`,
-      {
-        contextData: { url: normalizedUrl, error: lastError?.message },
-        userFriendlyMessage:
-          'An issue occurred while scraping the website. Please check the URL and try again.',
-      },
+    throw new Error(
+      `Failed to scrape page after ${MAX_RETRIES} attempts: ${normalizedUrl}. An issue occurred while scraping the website. Please check the URL and try again. Error: ${lastError?.message}`,
     );
+  }
+
+  // Cleanup method to close browser when service is destroyed
+  async onModuleDestroy() {
+    if (this.browser && this.browser.isConnected()) {
+      await this.browser.close().catch((err) => {
+        this.logger.error('Error closing browser on module destroy', err);
+      });
+    }
   }
 }
