@@ -1,7 +1,7 @@
 import { Module, OnModuleInit, Logger } from '@nestjs/common';
-// import { AuthModule } from '@thallesp/nestjs-better-auth';
-// import { auth } from './utils/auth';
-// import { AuthBetterModule } from './auth/auth.module';
+import { AuthModule } from '@thallesp/nestjs-better-auth';
+import { auth } from './utils/auth';
+import { AuthBetterModule } from './auth/auth.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -25,8 +25,11 @@ import { PrometheusModule } from './prometheus/prometheus.module';
       cache: true,
     }),
     MongooseModule.forRoot(process.env.MONGODB_URI as string, {}),
-    // AuthModule.forRoot({ auth }),
-    // AuthBetterModule,
+    AuthModule.forRoot({
+      auth,
+      disableGlobalAuthGuard: true,
+    }),
+    AuthBetterModule,
     ReportsModule,
     ScraperModule,
     PerformanceModule,
@@ -44,23 +47,10 @@ export class AppModule implements OnModuleInit {
 
   onModuleInit() {
     this.logger.log('AppModule initialized');
-    this.logger.log('Environment variables loaded');
-
     // Debug: Check if API keys are loaded
     this.logger.log(`OpenAI configured: ${!!process.env.OPENAI_API_KEY}`);
-    this.logger.log(
-      `Gemini configured: ${!!(process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY)}`,
-    );
-    this.logger.log(
-      `PSI configured: ${!!(process.env.GOOGLE_PAGESPEED_API_KEY || process.env.PSI_API_KEY)}`,
-    );
-
     this.logger.log('ScraperModule should be loaded');
-    this.logger.log('PerformanceModule should be loaded');
-    this.logger.log('ArkheModule should be loaded');
-    this.logger.log('JobStatusModule should be loaded');
     this.logger.log('StartAnalysisModule should be loaded');
     this.logger.log('OrchestrationModule should be loaded');
-    this.logger.log('PrometheusModule should be loaded');
   }
 }
