@@ -1,12 +1,13 @@
-import { IsString, IsOptional } from 'class-validator';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { IsString, IsOptional, ValidateIf } from 'class-validator';
 
 export class StartAnalysisDto {
+  @ValidateIf((o) => !o.domain)
   @IsString()
-  @IsOptional()
   url?: string;
 
+  @ValidateIf((o) => !o.url)
   @IsString()
-  @IsOptional()
   domain?: string;
 
   @IsString()

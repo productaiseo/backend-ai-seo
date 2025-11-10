@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
@@ -13,7 +15,7 @@ async function bootstrap() {
   // initializeAuth();
 
   const app = await NestFactory.create(AppModule, {
-    bodyParser: false,
+    // bodyParser: false,
   });
 
   // Debug logs
@@ -45,7 +47,23 @@ async function bootstrap() {
 
   // Configure CORS
   app.enableCors({
-    origin: ['http://localhost:3000', 'https://mvp.aiseoptimizer.com'],
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        'http://localhost:3000',
+        'http://localhost:8080',
+        'https://mvp.aiseoptimizer.com',
+        'https://api.aiseoptimizer.com',
+      ];
+
+      // Allow requests with no origin (like mobile apps, Postman, curl)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type',
@@ -55,10 +73,8 @@ async function bootstrap() {
       'Cache-Control',
       'X-Requested-With',
     ],
-    exposedHeaders: ['Content-Length', 'Content-Type'],
-    preflightContinue: false,
     credentials: true,
-    optionsSuccessStatus: 204,
+    optionsSuccessStatus: 200,
   });
 
   const port = process.env.PORT ?? 8080;

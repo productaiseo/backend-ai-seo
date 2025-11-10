@@ -68,15 +68,12 @@ export const initializeAuth = () => {
     },
 
     // Trusted origins for CORS
-    trustedOrigins: ['http://localhost:3000', 'https://mvp.aiseoptimizer.com'],
-
-    // Advanced security options
-    advanced: {
-      crossSubDomainCookies: {
-        enabled: false,
-      },
-      useSecureCookies: process.env.NODE_ENV === 'production',
-    },
+    trustedOrigins: [
+      'http://localhost:3000',
+      'http://localhost:8080',
+      'https://mvp.aiseoptimizer.com',
+      'https://api.aiseoptimizer.com',
+    ],
 
     // Social providers (add when ready)
     socialProviders: {
