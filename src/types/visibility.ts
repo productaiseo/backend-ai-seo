@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 export enum VisibilityLevel {
   NOT_VISIBLE = 'not_visible', // 0.0 puan - Hiç görünmüyor
   LOW_VISIBILITY = 'low_visibility', // 0.3 puan - Düşük görünürlük (örn. sadece bir kez bahsedilmiş)

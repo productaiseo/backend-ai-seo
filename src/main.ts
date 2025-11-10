@@ -1,34 +1,31 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { initializeBetterAuthDB } from './utils/db';
+import { initializeAuthEmailService, initializeAuth } from './utils/auth'; // Add initializeAuth
+import { AuthEmailService } from './auth/services/email.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Initialize MongoDB connection for Better Auth
+  await initializeBetterAuthDB();
 
-  // Debug: Log environment variables (remove in production!)
-  console.log('=== Environment Variables Check ===');
+  // Initialize Better Auth (after DB is ready)
+  initializeAuth();
+
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
+  });
+
+  // Debug logs
   console.log('NODE_ENV:', process.env.NODE_ENV);
   console.log('MONGODB_URI:', process.env.MONGODB_URI ? '✓ Set' : '✗ Missing');
-  console.log(
-    'OPENAI_API_KEY:',
-    process.env.OPENAI_API_KEY ? '✓ Set' : '✗ Missing',
-  );
-  console.log(
-    'GEMINI_API_KEY:',
-    process.env.GEMINI_API_KEY ? '✓ Set' : '✗ Missing',
-  );
-  console.log(
-    'GOOGLE_GEMINI_API_KEY:',
-    process.env.GOOGLE_GEMINI_API_KEY ? '✓ Set' : '✗ Missing',
-  );
-  console.log(
-    'GOOGLE_PAGESPEED_API_KEY:',
-    process.env.GOOGLE_PAGESPEED_API_KEY ? '✓ Set' : '✗ Missing',
-  );
-  console.log('===================================');
+
+  // Hand the DI instance to your Better Auth callbacks
+  const emailSvc = app.get(AuthEmailService);
+  initializeAuthEmailService(emailSvc);
 
   // Set global prefix
-  app.setGlobalPrefix('api');
+  // app.setGlobalPrefix('api');
 
   // Add validation pipe
   app.useGlobalPipes(
@@ -50,12 +47,12 @@ async function bootstrap() {
       'Cache-Control',
     ],
     credentials: true,
-    optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+    optionsSuccessStatus: 200,
   });
 
   const port = process.env.PORT ?? 8080;
   await app.listen(port);
-
   console.log(`Application is running on port ${port}`);
 }
+
 bootstrap();

@@ -1,4 +1,8 @@
 import { Module, OnModuleInit, Logger } from '@nestjs/common';
+import { AuthModule } from '@thallesp/nestjs-better-auth';
+import { auth } from './utils/auth'; // Your Better Auth instance
+import { AuthBetterModule } from './auth/auth.module';
+
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
@@ -21,6 +25,8 @@ import { PrometheusModule } from './prometheus/prometheus.module';
       cache: true,
     }),
     MongooseModule.forRoot(process.env.MONGODB_URI as string, {}),
+    AuthModule.forRoot({ auth }),
+    AuthBetterModule,
     ReportsModule,
     ScraperModule,
     PerformanceModule,
