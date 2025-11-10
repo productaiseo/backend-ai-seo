@@ -25,7 +25,7 @@ async function bootstrap() {
   );
   console.log(
     'Better Auth URL:',
-    process.env.BETTER_AUTH_URL || 'http://localhost:8080',
+    process.env.BETTER_AUTH_URL ? '✓ Set' : '✗ Missing',
   );
 
   // Hand the DI instance to your Better Auth callbacks
@@ -53,9 +53,12 @@ async function bootstrap() {
       'Accept',
       'Origin',
       'Cache-Control',
+      'X-Requested-With',
     ],
+    exposedHeaders: ['Content-Length', 'Content-Type'],
+    preflightContinue: false,
     credentials: true,
-    optionsSuccessStatus: 200,
+    optionsSuccessStatus: 204,
   });
 
   const port = process.env.PORT ?? 8080;
