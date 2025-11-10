@@ -28,6 +28,7 @@ import { PrometheusModule } from './prometheus/prometheus.module';
     AuthModule.forRoot({
       auth,
       disableGlobalAuthGuard: true,
+      disableBodyParser: false,
     }),
     AuthBetterModule,
     ReportsModule,

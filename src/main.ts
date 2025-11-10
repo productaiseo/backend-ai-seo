@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import * as express from 'express';
+// import * as express from 'express';
 import { initializeBetterAuthDB } from './utils/db';
 import { initializeAuthEmailService, initializeAuth } from './utils/auth';
 import { AuthEmailService } from './auth/services/email.service';
@@ -16,23 +15,7 @@ async function bootstrap() {
   // Initialize Better Auth (after DB is ready)
   initializeAuth();
 
-  const app = await NestFactory.create(AppModule, {
-    bodyParser: false, // Keep this disabled for Better Auth routes
-  });
-
-  // Apply body parsers SELECTIVELY - exclude Better Auth routes
-  app.use((req, res, next) => {
-    // Skip body parsing for Better Auth routes
-    if (req.path.startsWith('/api/auth')) {
-      return next();
-    }
-
-    // Parse JSON and URL-encoded bodies for all other routes
-    express.json()(req, res, (err) => {
-      if (err) return next(err);
-      express.urlencoded({ extended: true })(req, res, next);
-    });
-  });
+  const app = await NestFactory.create(AppModule, {});
 
   // Debug logs
   console.log('NODE_ENV:', process.env.NODE_ENV);
