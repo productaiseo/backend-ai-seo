@@ -13,37 +13,35 @@ export class AuthEmailService {
   constructor(private readonly configService: ConfigService) {
     const host = this.configService.get<string>('EMAIL_SERVER_HOST');
     const port = parseInt(
-      this.configService.get<string>('EMAIL_SERVER_PORT') ?? '587', // Changed from 465
+      this.configService.get<string>('EMAIL_SERVER_PORT') ?? '587',
     );
     const user = this.configService.get<string>('EMAIL_SERVER_USER');
+    const pass = this.configService.get<string>('EMAIL_SERVER_PASSWORD');
 
-    // Debug logs for production
-    this.logger.log(`Configuring email with host: ${host}, port: ${port}`);
+    // Debug logs (remove sensitive data in production)
+    this.logger.log(`📧 Email Config:`);
+    this.logger.log(`  Host: ${host}`);
+    this.logger.log(`  Port: ${port}`);
+    this.logger.log(`  User: ${user}`);
+    this.logger.log(`  Password: ${pass ? '***' + pass.slice(-4) : 'NOT SET'}`);
+    this.logger.log(`  Secure: ${port === 465}`);
 
     this.transporter = nodemailer.createTransport({
       host,
       port,
-      secure: port === 465, // true for 465, false for other ports
-      auth: {
-        user,
-        pass: this.configService.get<string>('EMAIL_SERVER_PASSWORD'),
-      },
-      // Add these production settings
+      secure: port === 465,
+      auth: { user, pass },
       tls: {
-        // Don't fail on invalid certificates (adjust based on your needs)
         rejectUnauthorized: false,
       },
-      // Connection timeout settings
-      connectionTimeout: 10000, // 10 seconds
+      connectionTimeout: 10000,
       greetingTimeout: 5000,
       socketTimeout: 15000,
-      // Enable connection pooling
-      pool: true,
-      maxConnections: 5,
-      maxMessages: 10,
+      // Add debug logging
+      debug: true,
+      logger: true,
     });
 
-    // Verify connection on startup
     this.verifyConnection();
   }
 
