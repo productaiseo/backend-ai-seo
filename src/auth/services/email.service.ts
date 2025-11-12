@@ -3,56 +3,28 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 @Injectable()
 export class AuthEmailService {
   private readonly logger = new Logger(AuthEmailService.name);
-  private readonly transporter: nodemailer.Transporter;
+  private readonly resend: Resend;
+  private readonly fromEmail: string;
 
   constructor(private readonly configService: ConfigService) {
-    const host = this.configService.get<string>('EMAIL_SERVER_HOST');
-    const port = parseInt(
-      this.configService.get<string>('EMAIL_SERVER_PORT') ?? '587',
-    );
-    const user = this.configService.get<string>('EMAIL_SERVER_USER');
-    const pass = this.configService.get<string>('EMAIL_SERVER_PASSWORD');
+    const apiKey = this.configService.get<string>('RESEND_API_KEY');
+    this.fromEmail =
+      this.configService.get<string>('EMAIL_FROM') ??
+      'product@aiseoptimizer.com';
 
-    // Debug logs (remove sensitive data in production)
-    this.logger.log(`📧 Email Config:`);
-    this.logger.log(`  Host: ${host}`);
-    this.logger.log(`  Port: ${port}`);
-    this.logger.log(`  User: ${user}`);
-    this.logger.log(`  Password: ${pass ? '***' + pass.slice(-4) : 'NOT SET'}`);
-    this.logger.log(`  Secure: ${port === 465}`);
-
-    this.transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: { user, pass },
-      tls: {
-        rejectUnauthorized: false,
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 5000,
-      socketTimeout: 15000,
-      // Add debug logging
-      debug: true,
-      logger: true,
-    });
-
-    this.verifyConnection();
-  }
-
-  private async verifyConnection() {
-    try {
-      await this.transporter.verify();
-      this.logger.log('✓ Email transporter is ready');
-    } catch (error) {
-      this.logger.error('✗ Email transporter verification failed:', error);
-      this.logger.error('Check your EMAIL_SERVER_* environment variables');
+    if (!apiKey) {
+      this.logger.error('⚠️ RESEND_API_KEY is not set!');
+      throw new Error('RESEND_API_KEY is required');
     }
+
+    this.resend = new Resend(apiKey);
+    this.logger.log(`✅ Resend initialized successfully`);
+    this.logger.log(`📧 Sending emails from: ${this.fromEmail}`);
   }
 
   /* Sends email verification link */
@@ -60,15 +32,23 @@ export class AuthEmailService {
     const htmlTemplate = this.getVerificationEmailTemplate(url);
 
     try {
-      await this.transporter.sendMail({
-        from: this.configService.get<string>('EMAIL_FROM'),
+      const { data, error } = await this.resend.emails.send({
+        from: this.fromEmail,
         to: email,
         subject: 'E-posta Adresinizi Doğrulayın',
         html: htmlTemplate,
       });
-      this.logger.log(`Verification email sent to ${email}`);
+
+      if (error) {
+        this.logger.error(`❌ Resend error for ${email}:`, error);
+        throw new Error(`Failed to send: ${error.message}`);
+      }
+
+      this.logger.log(
+        `✅ Verification email sent to ${email}. Message ID: ${data?.id}`,
+      );
     } catch (error) {
-      this.logger.error('Failed to send verification email:', error);
+      this.logger.error('❌ Failed to send verification email:', error);
       throw new Error('Failed to send verification email');
     }
   }
@@ -78,15 +58,23 @@ export class AuthEmailService {
     const htmlTemplate = this.getPasswordResetTemplate(url);
 
     try {
-      await this.transporter.sendMail({
-        from: this.configService.get<string>('EMAIL_FROM'),
+      const { data, error } = await this.resend.emails.send({
+        from: this.fromEmail,
         to: email,
         subject: 'Şifre Sıfırlama Talebi',
         html: htmlTemplate,
       });
-      this.logger.log(`Password reset email sent to ${email}`);
+
+      if (error) {
+        this.logger.error(`❌ Resend error for ${email}:`, error);
+        throw new Error(`Failed to send: ${error.message}`);
+      }
+
+      this.logger.log(
+        `✅ Password reset sent to ${email}. Message ID: ${data?.id}`,
+      );
     } catch (error) {
-      this.logger.error('Failed to send password reset email:', error);
+      this.logger.error('❌ Failed to send password reset email:', error);
       throw new Error('Failed to send password reset email');
     }
   }
