@@ -3,7 +3,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-// import * as express from 'express';
 import { initializeBetterAuthDB } from './utils/db';
 import { initializeAuthEmailService, initializeAuth } from './utils/auth';
 import { AuthEmailService } from './auth/services/email.service';

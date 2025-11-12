@@ -11,17 +11,50 @@ export class AuthEmailService {
   private readonly transporter: nodemailer.Transporter;
 
   constructor(private readonly configService: ConfigService) {
+    const host = this.configService.get<string>('EMAIL_SERVER_HOST');
+    const port = parseInt(
+      this.configService.get<string>('EMAIL_SERVER_PORT') ?? '587', // Changed from 465
+    );
+    const user = this.configService.get<string>('EMAIL_SERVER_USER');
+
+    // Debug logs for production
+    this.logger.log(`Configuring email with host: ${host}, port: ${port}`);
+
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('EMAIL_SERVER_HOST'),
-      port: parseInt(
-        this.configService.get<string>('EMAIL_SERVER_PORT') ?? '465',
-      ),
-      secure: this.configService.get<string>('EMAIL_SERVER_PORT') === '465',
+      host,
+      port,
+      secure: port === 465, // true for 465, false for other ports
       auth: {
-        user: this.configService.get<string>('EMAIL_SERVER_USER'),
+        user,
         pass: this.configService.get<string>('EMAIL_SERVER_PASSWORD'),
       },
+      // Add these production settings
+      tls: {
+        // Don't fail on invalid certificates (adjust based on your needs)
+        rejectUnauthorized: false,
+      },
+      // Connection timeout settings
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 5000,
+      socketTimeout: 15000,
+      // Enable connection pooling
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 10,
     });
+
+    // Verify connection on startup
+    this.verifyConnection();
+  }
+
+  private async verifyConnection() {
+    try {
+      await this.transporter.verify();
+      this.logger.log('✓ Email transporter is ready');
+    } catch (error) {
+      this.logger.error('✗ Email transporter verification failed:', error);
+      this.logger.error('Check your EMAIL_SERVER_* environment variables');
+    }
   }
 
   /* Sends email verification link */
