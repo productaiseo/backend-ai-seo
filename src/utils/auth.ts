@@ -52,7 +52,14 @@ export const initializeAuth = () => {
           throw new Error('Email service not available');
         }
         try {
-          await authEmailService.sendVerificationEmail(user.email, url);
+          // Extract token from Better Auth's URL
+          const token = url.split('token=')[1]?.split('&')[0];
+          // ✅ Point to FRONTEND, not backend
+          const frontendUrl =
+            process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
+          const customUrl = `${frontendUrl}/auth/verify-email?token=${token}&callbackURL=/`;
+
+          await authEmailService.sendVerificationEmail(user.email, customUrl);
         } catch (error) {
           console.error('Failed to send verification email:', error);
           throw error;

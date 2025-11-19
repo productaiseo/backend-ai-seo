@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
@@ -175,8 +172,8 @@ export class AuthEmailService {
               </div>
             </div>
             <div class="footer">
-              <p>&copy; 2025 Hukuk Sitesi. Tüm hakları saklıdır.</p>
-              <p><a href="https://www.hukuk-sitesi.com">Sitemizi Ziyaret Edin</a></p>
+              <p>&copy; 2025 AI SEO Optimizer. Tüm hakları saklıdır.</p>
+              <p><a href="https://mvp.aiseoptimizer.com">Sitemizi Ziyaret Edin</a></p>
             </div>
           </div>
         </body>
@@ -290,8 +287,8 @@ export class AuthEmailService {
               </div>
             </div>
             <div class="footer">
-              <p>&copy; 2025 Hukuk Sitesi. Tüm hakları saklıdır.</p>
-              <p><a href="https://www.hukuk-sitesi.com">Sitemizi Ziyaret Edin</a></p>
+              <p>&copy; 2025 AI SEO Optimizer. Tüm hakları saklıdır.</p>
+              <p><a href="https://mvp.aiseoptimizer.com">Sitemizi Ziyaret Edin</a></p>
             </div>
           </div>
         </body>
