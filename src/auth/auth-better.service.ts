@@ -134,9 +134,18 @@ export class AuthBetterService {
   // ============================================
   async resetPassword(resetPasswordDto: ResetPasswordDto, req: ExpressRequest) {
     try {
+      // Extract token from query params
+      const token = req.query.token as string;
+      if (!token) {
+        throw new BadRequestException('Verification token is required');
+      }
+
       await this.authService.api.resetPassword({
         body: {
           newPassword: resetPasswordDto.newPassword,
+        },
+        query: {
+          token, // ✅ Fixed: added required query parameter
         },
         headers: fromNodeHeaders(req.headers),
       });

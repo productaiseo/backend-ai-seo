@@ -36,7 +36,15 @@ export const initializeAuth = () => {
           throw new Error('Email service not available');
         }
         try {
-          await authEmailService.sendPasswordReset(user.email, url);
+          console.log('Password reset URL:', url);
+          // Extract token from Better Auth's URL
+          const token = url.split('/reset-password/')[1]?.split('?')[0];
+          // ✅ Point to FRONTEND, not backend
+          const frontendUrl =
+            process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
+          const customUrl = `${frontendUrl}/auth/reset-password?token=${token}&callbackURL=/reset-password`;
+
+          await authEmailService.sendPasswordReset(user.email, customUrl);
         } catch (error) {
           console.error('Failed to send password reset email:', error);
           throw error;
