@@ -60,14 +60,15 @@ export class AuthController {
     return this.authService.forgotPassword(forgotPasswordDto, req);
   }
 
-  @Post('reset-password')
+  @Post('reset-password/:token')
   @AllowAnonymous()
   @HttpCode(HttpStatus.OK)
   async resetPassword(
+    @Param('token') token: string,
     @Body() resetPasswordDto: ResetPasswordDto,
     @Request() req: ExpressRequest,
   ) {
-    return this.authService.resetPassword(resetPasswordDto, req);
+    return this.authService.resetPassword(token, resetPasswordDto, req);
   }
 
   @Post('verify-email')

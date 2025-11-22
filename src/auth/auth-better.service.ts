@@ -4,6 +4,7 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { AuthService } from '@thallesp/nestjs-better-auth';
 import { fromNodeHeaders } from 'better-auth/node';
@@ -26,6 +27,8 @@ import {
 
 @Injectable()
 export class AuthBetterService {
+  private readonly logger = new Logger(AuthBetterService.name);
+
   constructor(
     private authService: AuthService<typeof auth>,
     @InjectModel(User.name) private userModel: Model<User>,
@@ -108,19 +111,47 @@ export class AuthBetterService {
     req: ExpressRequest,
   ) {
     try {
-      await this.authService.api.forgetPassword({
-        body: {
+      // Better Auth handles sending the email via the sendResetPassword callback
+      // We just need to trigger the forgot password flow
+      const user = await this.userModel.findOne({
+        email: forgotPasswordDto.email,
+      });
+
+      if (!user) {
+        // Don't reveal if email exists or not for security
+        return {
+          success: true,
+          message: 'If the email exists, a reset link has been sent.',
+        };
+      }
+
+      // The email will be sent automatically by Better Auth through the
+      // sendResetPassword callback configured in utils/auth.ts
+      // This triggers the password reset flow
+      const resetUrl = `${process.env.BETTER_AUTH_URL}/auth/forgot-password`;
+
+      const response = await fetch(resetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...fromNodeHeaders(req.headers),
+        },
+        body: JSON.stringify({
           email: forgotPasswordDto.email,
           redirectTo: forgotPasswordDto.redirectUrl || '/reset-password',
-        },
-        headers: fromNodeHeaders(req.headers),
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to initiate password reset');
+      }
 
       return {
         success: true,
         message: 'Password reset email sent. Please check your inbox.',
       };
     } catch (error) {
+      this.logger.error('Forgot password error:', error);
       // Don't reveal if email exists or not for security
       return {
         success: true,
@@ -132,14 +163,12 @@ export class AuthBetterService {
   // ============================================
   // RESET PASSWORD
   // ============================================
-  async resetPassword(resetPasswordDto: ResetPasswordDto, req: ExpressRequest) {
+  async resetPassword(
+    token: string,
+    resetPasswordDto: ResetPasswordDto,
+    req: ExpressRequest,
+  ) {
     try {
-      // Extract token from query params
-      const token = req.query.token as string;
-      if (!token) {
-        throw new BadRequestException('Verification token is required');
-      }
-
       await this.authService.api.resetPassword({
         body: {
           newPassword: resetPasswordDto.newPassword,
@@ -155,6 +184,7 @@ export class AuthBetterService {
         message: 'Password reset successfully',
       };
     } catch (error) {
+      this.logger.error('Reset password error:', error);
       throw new BadRequestException(
         'Failed to reset password. The link may have expired.',
       );
