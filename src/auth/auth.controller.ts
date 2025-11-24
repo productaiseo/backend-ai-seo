@@ -96,24 +96,31 @@ export class AuthController {
   // ============================================
 
   @Get('me')
+  @OptionalAuth() // Changed to OptionalAuth so we can handle session in service
   @HttpCode(HttpStatus.OK)
-  async getProfile(@Session() session: UserSession) {
-    return this.authService.getProfile(session);
+  async getProfile(
+    @Session() session: UserSession | null,
+    @Request() req: ExpressRequest,
+  ) {
+    return this.authService.getProfile(session, req);
   }
 
   @Patch('profile')
+  @OptionalAuth() // Changed to OptionalAuth
   @HttpCode(HttpStatus.OK)
   async updateProfile(
-    @Session() session: UserSession,
+    @Session() session: UserSession | null,
     @Body() updateProfileDto: UpdateProfileDto,
+    @Request() req: ExpressRequest,
   ) {
-    return this.authService.updateProfile(session, updateProfileDto);
+    return this.authService.updateProfile(session, updateProfileDto, req);
   }
 
   @Post('change-password')
+  @OptionalAuth() // Changed to OptionalAuth
   @HttpCode(HttpStatus.OK)
   async changePassword(
-    @Session() session: UserSession,
+    @Session() session: UserSession | null,
     @Body() changePasswordDto: ChangePasswordDto,
     @Request() req: ExpressRequest,
   ) {
@@ -121,27 +128,30 @@ export class AuthController {
   }
 
   @Post('signout')
+  @OptionalAuth() // Changed to OptionalAuth
   @HttpCode(HttpStatus.OK)
   async signOut(
-    @Session() session: UserSession,
+    @Session() session: UserSession | null,
     @Request() req: ExpressRequest,
   ) {
     return this.authService.signOut(session, req);
   }
 
   @Get('sessions')
+  @OptionalAuth() // Changed to OptionalAuth
   @HttpCode(HttpStatus.OK)
   async getSessions(
-    @Session() session: UserSession,
+    @Session() session: UserSession | null,
     @Request() req: ExpressRequest,
   ) {
     return this.authService.getSessions(session, req);
   }
 
   @Delete('sessions/:sessionId')
+  @OptionalAuth() // Changed to OptionalAuth
   @HttpCode(HttpStatus.OK)
   async revokeSession(
-    @Session() session: UserSession,
+    @Session() session: UserSession | null,
     @Param('sessionId') sessionId: string,
     @Request() req: ExpressRequest,
   ) {
@@ -149,9 +159,10 @@ export class AuthController {
   }
 
   @Delete('sessions')
+  @OptionalAuth() // Changed to OptionalAuth
   @HttpCode(HttpStatus.OK)
   async revokeAllSessions(
-    @Session() session: UserSession,
+    @Session() session: UserSession | null,
     @Request() req: ExpressRequest,
   ) {
     return this.authService.revokeAllSessions(session, req);
