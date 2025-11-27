@@ -14,6 +14,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from './schemas/user.schema';
 import { Session } from './schemas/session.schema';
+// import { Verification } from './schemas/verification.schema';
 import { auth } from '../utils/auth';
 import type { Request as ExpressRequest } from 'express';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
@@ -35,6 +36,7 @@ export class AuthBetterService {
     private readonly authService: AuthService<typeof auth>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
     @InjectModel(Session.name) private readonly sessionModel: Model<Session>,
+    // @InjectModel(Verification.name) private readonly verificationModel: Model<Verification>,
   ) {}
 
   // Helper method to extract session token from request

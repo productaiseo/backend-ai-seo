@@ -65,7 +65,7 @@ export const initializeAuth = () => {
           // ✅ Point to FRONTEND, not backend
           const frontendUrl =
             process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
-          const customUrl = `${frontendUrl}/auth/verify-email?token=${token}&callbackURL=/`;
+          const customUrl = `${frontendUrl}/auth/verify-email?token=${token}&callbackURL=/auth/signin`;
 
           await authEmailService.sendVerificationEmail(user.email, customUrl);
         } catch (error) {

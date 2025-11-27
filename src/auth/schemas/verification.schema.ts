@@ -1,10 +1,16 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 @Schema({ collection: 'verification', timestamps: true })
 export class Verification extends Document {
   @Prop({ required: true })
-  identifier: string;
+  identifier: string; // email address
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  userId?: Types.ObjectId;
+
+  @Prop({ required: true })
+  token: string;
 
   @Prop({ required: true })
   value: string;
