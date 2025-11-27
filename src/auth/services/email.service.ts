@@ -114,22 +114,22 @@ export class AuthEmailService {
               padding: 20px;
               color: #333333;
             }
-            .button-container {
-              text-align: center;
-              margin: 30px 0;
-            }
             .verify-button {
               display: inline-block;
+              text-align: center;
+              margin: 30px 0;
               padding: 15px 40px;
               background-color: #007bff;
-              color: #ffffff;
-              text-decoration: none;
               border-radius: 5px;
-              font-weight: bold;
-              font-size: 16px;
+              text-decoration: none;
             }
             .verify-button:hover {
               background-color: #0056b3;
+            }
+            .button-text {
+              color: #ffffff;
+              font-weight: bold;
+              font-size: 16px;
             }
             .footer {
               text-align: center;
@@ -161,9 +161,9 @@ export class AuthEmailService {
             <div class="content">
               <p>Merhaba,</p>
               <p>Hesabınızı oluşturduğunuz için teşekkür ederiz! E-posta adresinizi doğrulamak için lütfen aşağıdaki butona tıklayın:</p>
-              <div class="button-container">
-                <a href="${url}" class="verify-button">E-postamı Doğrula</a>
-              </div>
+              <a href="${url}" class="verify-button">
+                <span class="button-text">E-postamı Doğrula</span>
+              </a>
               <p>Bu bağlantı güvenlik nedeniyle <strong>24 saat</strong> içinde geçerliliğini yitirecektir.</p>
               <p>Eğer bu hesabı siz oluşturmadıysanız, lütfen bu e-postayı dikkate almayın.</p>
               <div class="alternative-link">
